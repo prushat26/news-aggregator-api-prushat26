@@ -1,25 +1,24 @@
-const mongoose = require('mongoose');
+const { Sequelize } = require('sequelize');
 require('dotenv').config();
+
+// Initialize the local SQLite instance
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './news.sqlite', // The database is now a single file in project root
+    logging: false
+});
 
 const connectDB = async () => {
     try {
-        const options = {
-            maxPoolSize: 10,        // Allows multiple parallel fetches from syncNews
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-        };
-
-        await mongoose.connect(process.env.MONGO_URI, options);
-        console.log(`[${new Date().toISOString()}] DB Connected`);
-
-        // Handle connection interruptions (Operational Resilience)
-        mongoose.connection.on('error', err => console.error('Database Error:', err));
-        mongoose.connection.on('disconnected', () => console.warn('Database Disconnected. Reconnecting...'));
-
+        await sequelize.authenticate();
+        // Sync ensures tables exist without manual SQL commands
+        await sequelize.sync({ alter: true }); 
+        console.log(`[${new Date().toISOString()}] SQLite Connected: news.sqlite`);
     } catch (err) {
         console.error('Critical Database Failure:', err.message);
         process.exit(1);
     }
 };
 
-module.exports = connectDB;
+// Export both the connection function and the instance for models
+module.exports = { connectDB, sequelize };
